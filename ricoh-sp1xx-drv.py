@@ -11,16 +11,16 @@ import subprocess
 #import utils
 #####################################
 #set default values
-__pagesize="A4" #default page size
-__resolution="600"
+__pagesize = "A4"  #  default page size
+__resolution = "600"
 __copies = "1"
-__mediasource="AUTO" #__mediasource="TRAY1"
+__mediasource = "AUTO"  #__mediasource="TRAY1"
 
 #this modes are implemented in cups, user sets them in printing settings,
 #the driver receives proper pages(all,odd,even) in proper order(direct,
 # reversed) we ignore them n code
-__outputOrder="DIRECT" #direct or reversed order
-__printPages="ALL" #all, even, odd pages to be printed
+__outputOrder="DIRECT" # direct or reversed order
+__printPages="ALL" # all, even, odd pages to be printed
 
 ##############################
 __base = sys.path[0]+"/" #script dir
@@ -29,29 +29,35 @@ __base = sys.path[0]+"/" #script dir
 #for debugging, if everyting is OK, set empty strings to this values
 #here filenames are relative to dir of this driver, redirection of driver output
 #hardcoded here to catch output if driver has been called via cups.
-__out_fn ="driver.out" #will redirect output not to stdio, but to this file
-__log_fn ="session.log"#will dump logs to this file
+__out_fn ="" #default output to sdtout
+#__out_fn =__base+"driver.out" #will redirect output not to stdio, but to this file
+
+__log_fn =""#won't dump any
+#__log_fn =__base+"session.log"#will dump logs to this file
+
 
 #####################################
 __out = sys.stdout #select data output to stdout(cups filter send data there)
 if __out_fn!="":
-    __out = open(__base+__out_fn,"w")
-
-
+    __out = open(__out_fn,"w")
 
 ##################################
 #logging
 __log_stream = None
 
-if __log_fn!="":
-    __log_stream = open(__base+__log_fn, "w") #open log file
+if __log_fn != "":
+    __log_stream = open(__log_fn, "w") #open log file
     sys.stderr = __log_stream
 
+
 def log(fs):
-    if not __log_stream is None: __log_stream.write(fs+'\n')
+    if not __log_stream is None:
+        __log_stream.write(fs+'\n')
+
 
 def closeLog():
-    if not __log_stream is None: __log_stream.close()
+    if not __log_stream is None:
+        __log_stream.close()
 
 ###################################
 #get script parameters
@@ -360,7 +366,7 @@ def doJob() :
 #cleanup
 def driverCleanup():
 #    if not __copy_stream is None: __copy_stream.close()
-#    term("rm -rf "+ __uid) #delete temp folder
+    term("rm -rf "+ __uid) #delete temp folder
     if __out!=sys.stdout:__out.close()
     closeLog()
 
@@ -384,7 +390,6 @@ def doJobTrivial():
     #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
     #we can convert only PBM->JBIG(needed by printer)
     term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ linput)
-  #  sys.exit()
     inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
     lheader = False 
     while True:
@@ -399,7 +404,6 @@ def doJobTrivial():
         inx=inx+1 # next page
     #### file generated, add footer ####
     if lheader: sendFileFoot() #there header had been sent, so send footer
-#    if __faked: __out.close()#close ouput file
 
 
 #find last page - used for backward printing and to avoid extrapage of 
@@ -448,9 +452,9 @@ def doJobSimple():
     
       #### file generated, add footer ####
     if lfooter: sendFileFoot()
-    #cleanup
-################################
 
+
+################################
 #doJobTrivial()
 doJobSimple()
 log("printing: OK")
