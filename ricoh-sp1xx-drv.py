@@ -7,7 +7,7 @@ import sys
 import os
 import uuid
 import time
-import subprocess
+#import subprocess
 #import utils
 #####################################
 #set default values
@@ -274,94 +274,6 @@ def addPage(fpage):
 #get driver data source
 def getInput():
     return " -" 
-
-#    log ("### create faked input from test file ###")  
-#    lout = __temp_dir+"test.ps"
-#    linput = " " #if input is empty - reads from stdio
-#    term("enscript --media="+__pagesize+" -o "+ lout +" "+ linput)
- #  term("sam2p gerb.png EPS: "+__input) #convert from picture
- #  term("sam2p dog.jpg EPS: " + linput)
-#    log ("### Faked input created ###")
-#    return lout
-
-########################################################
-########################################################
-########################################################
-
-#PRINT ENTIRE FILE
-#DO NOT USE THIS FUNCTION, IT IS FROM OLD VERSION,
-#MUST BE REMADEN!!!
-def doJob() :
-  linput = getInput()
-  log("########### convertion to PostScript done###########")
-
-  __gs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER" #standard Ghost Script options from GS tutorial
-  #__gs_ops = "-dQUIET -dBATCH -dSAFER" #standard Ghost Script options from GS tutorial
-
-  #term("gs " + __gs_ops+" -sDEVICE=ps2write -sOutputFile=-" + " -r"+__resolution + __input
-  #	+" | gs "+ __gs_ops+" -sDEVICE=pbmraw	-sOutputFile="+ __uid+"%03d-page.pbm"	+" -r"+__resolution	+" -"
-  #)
-
-  #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
-  #we can convert only PBM->JBIG(needed by printer)
-  #term("gs "+ __gs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ __input)
-  term("gs "+ __gs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +" "+ linput)
-  sys.exit()
-
-
-  #subprocess.call(["gs", __gs_ops,"-sDEVICE=pbmraw", "-sOutputFile="+__temp_dir+"%03d-page.pbm","-r"+__resolution,__input])
-  p = subprocess.Popen(
-    ["gs"
-    , __gs_ops
-    ,"-sDEVICE=pbmraw"
-    ,"-sOutputFile="+__temp_dir+"%03d-page.pbm"
-    ,"-r"+__resolution
-    ,linput]
-    , shell=False
-    , stdin=subprocess.PIPE 
-    , stdout = subprocess.PIPE
-   ) 
-
-  #term("gs "+ __gs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ __input)
-  #log("pages converted")
-  #quit()
-
-  #print pages
-  #let we make output file - wellformed file to be sent to usb port
-  #p.stdin.write("\n")
-
-  send_file_head() # make header
-  #p.communicate('\n')	
-
-  page = 1; # scan pages images and send them to file, first page has index 1, not 0
-  while True:
-      log("waiting gs question")
-  #    p.stdout.flush()
-  #    if not p.poll(): break
-      ls = p.stdout.readline();
-  #    if not ls: break
-      log(ls)
-  #    time.sleep(1)
-      if p.poll():
-          p.stdin.write('\n')
-      
-      lpage = __temp_dir+'%03d'%(page) + "-page.pbm" #make page file name from index
-      if not addPage(lpage): break
-      #clean page file and temporary JBIG raster
-  #    term("rm "+lfile)
-  #    term("rm "+lrasterfile)
-      page=page+1 # next page
-
-  #### file generated, add footer ####
-  sendFileFoot()
-  __out.close()#close ouput file
-
-  #clean up
-  term("rm -rf "+ __uid)
-
-  #cleanup 
-  log("printing done")
-################################
 
 #cleanup
 def driverCleanup():
