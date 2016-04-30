@@ -8,7 +8,6 @@ import os
 import uuid
 import time
 #import subprocess
-#import utils
 #####################################
 #set default values
 __pagesize = "A4"  #  default page size
@@ -49,11 +48,9 @@ if __log_fn != "":
     __log_stream = open(__log_fn, "w") #open log file
     sys.stderr = __log_stream
 
-
 def log(fs):
     if not __log_stream is None:
         __log_stream.write(fs+'\n')
-
 
 def closeLog():
     if not __log_stream is None:
@@ -88,7 +85,6 @@ def _find_(farr, fs):
 #find option
 def find_option(fs):
     return _find_(sys.argv,fs)
-
 
 #parse options to override defaults
 if    (find_option("PageSize=A5")):     __pagesize="A5"
@@ -129,7 +125,6 @@ def term(fs):
 __uid = __base+ str(uuid.uuid4())
 term("mkdir "+__uid) #create temp dir
 __temp_dir = __uid +"/"
-
 
 #######################################
 def out(fs): #send data to output file
@@ -221,25 +216,14 @@ def parsePbmSize(ffile):
     #return 4961,7016    
     return int(ls[0]),int(ls[1])
 
-# send wellformed PJL page to output stream
+# send PJL page to output stream
 def addPage(fpage):
-#lraster_size =`wc -c < $uid/raster.jbig`
     log("sending page:"+fpage)
     if not os.path.exists(fpage): return False
 
 	# Converting page to JBIG format (parameters are very special for this printer!)
     lraster = __temp_dir+"raster.jbig"
-#convert PBM page file to JBIG compressed file
-#   term("pbmtojbg -p 72 -o 3 -m 0 -q < $page > $uid/raster.jbig")
-#    term("pbmtojbg -p 72 -o 3 -m 0 -q "+fpage+" "+lraster)
-    term("pbmtojbg -p 72 -o 3 -m 0 -q "+fpage+" "+lraster)
-# Taking image size
-#		jsize=`wc -c < $uid/raster.jbig`
-#    term( "wc -c < "+lraster)
-
-		# Taking image dimensions
-#  read fn ft xs ys garb < <(identify $page | tr "x" " ")
-#  log "Identified as ${xs}x${ys}"
+    #convert PBM page file to JBIG compressed file
 
     lw, lh = parsePbmSize(fpage) #get raster dimensions in pixels
     log("PAGE ORIGINAL DIMS="+str(lw)+"x"+str(lh))
@@ -261,7 +245,6 @@ def addPage(fpage):
     pjlLine("RESOLUTION="+__resolution) #resolution (dpi)
     pjlLine("IMAGELEN="+str(lbytes)) #bytes in image
 #append page raster
-#    global __out
     appendFile(__out,lfile)
 #    if not __copy_stream is None: append_file(__copy_stream,lfile)
 #send page footer
@@ -269,7 +252,6 @@ def addPage(fpage):
     pjlLine("PAGESTATUS=END")# end of page command
     return True
 ############def end send_page
-
 
 #get driver data source
 def getInput():
@@ -364,7 +346,6 @@ def doJobSimple():
     
       #### file generated, add footer ####
     if lfooter: sendFileFoot()
-
 
 ################################
 #doJobTrivial()
