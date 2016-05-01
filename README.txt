@@ -1,9 +1,4 @@
-URGENT!!!
-WHILE THIS MESSAGE IS HERE, DO NOT GET DRIVER, ONE CODE LINE WAS OCCASIONALLY 
-DELETED!!! AND DRIVER IS WRONG. IN A HOUR I'LL CORRECT IT
-
-
-Driver written for ricoh aficio sp100 series
+Driver developed for ricoh aficio sp100 series
 and can work possibly for SP2XX.
 Tested on ricoh aficio sp111(Ubuntu 14.04).
 It was inspired by madlynx driver - https://github.com/madlynx/ricoh-sp100

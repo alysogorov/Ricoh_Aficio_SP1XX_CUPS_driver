@@ -7,7 +7,7 @@ import sys
 import os
 import uuid
 import time
-#import subprocess
+import subprocess
 #####################################
 #set default values
 __pagesize = "A4"  #  default page size
@@ -32,7 +32,7 @@ __out_fn ="" #default output to sdtout
 #__out_fn =__base+"driver.out" #will redirect output not to stdio, but to this file
 
 __log_fn =""#won't dump any
-#__log_fn =__base+"session.log"#will dump logs to this file
+#__log_fn =__base+"LOG.LOG"#will dump logs to this file
 
 
 #####################################
@@ -192,7 +192,8 @@ def sendFileFoot():
 
 # append data of fsrc file to fdst file, buffered
 def appendFile(fdst, fsrc, fbuffer_size=1024*16):
-    fsrc.seek(0)    
+    
+    if fsrc!=sys.stdin: fsrc.seek(0)    
     while True:
         ldata = fsrc.read(fbuffer_size)
         if not ldata: break
@@ -224,7 +225,7 @@ def addPage(fpage):
 	# Converting page to JBIG format (parameters are very special for this printer!)
     lraster = __temp_dir+"raster.jbig"
     #convert PBM page file to JBIG compressed file
-
+    term("pbmtojbg -p 72 -o 3 -m 0 -q "+fpage+" "+lraster)
     lw, lh = parsePbmSize(fpage) #get raster dimensions in pixels
     log("PAGE ORIGINAL DIMS="+str(lw)+"x"+str(lh))
     lw,lh = cut_dimensions(__pagesize,"600",lw, lh)
@@ -347,9 +348,57 @@ def doJobSimple():
       #### file generated, add footer ####
     if lfooter: sendFileFoot()
 
+
+#more sophisticated print
+#we are starting GS as subpocess in interactive page by page mode(expecting user prompt)
+#every prompt signals that page is ready, we process this page, delete it, and wait next 
+#page. Here is only one conversion, and disc usage is minimal
+#but we need to copy incoming PS from stdin to a file
+def doJob() :
+#copy stdin to a file
+  lsavfn =  __temp_dir+"TEMP.PS"
+  lin = open(lsavfn,"w")
+  appendFile(lin,sys.stdin,1024)
+  lin.close()    
+#run conversion PS->PBM as subprocess with pipes
+  p =subprocess.Popen(
+     ["gs"
+     ,"-dQUIET"
+     ,"-dBATCH"
+     ,"-dSAFER" 
+     ,"-sDEVICE=pbmraw"
+     ,"-sOutputFile="+__temp_dir+"%03d-page.pbm"
+     ,"-r"+__resolution
+      #,linput]
+     ,lsavfn]
+     , shell=False
+     , stdin  = subprocess.PIPE 
+     , stdout = subprocess.PIPE
+   ) 
+  
+  lfooter=False
+  inx = 1; # scan pages images and send them to file, first page has index 1, not 0
+  while True:
+      log("waiting gs prompt")
+      ls = p.stdout.readline(); #wait for propmt
+      if ls!="": p.stdin.write('\n') #reply to the pronpt
+      log(ls) #log the prompt for debugging
+      if inx==1: 
+          send_file_head() # send header before the first page, if page exists
+          lfooter = True
+     
+      lpage =  makePageFN(inx,"-page.pbm")#make page file name from index
+      if not addPage(lpage): break
+      term("rm "+lpage) #delete processed page
+      inx=inx+1 # next page
+
+  #### file generated, add footer ####
+  if lfooter: sendFileFoot()
+
 ################################
 #doJobTrivial()
 doJobSimple()
+#doJob()
 log("printing: OK")
 driverCleanup()
  
