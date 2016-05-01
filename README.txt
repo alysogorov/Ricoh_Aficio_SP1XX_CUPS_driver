@@ -67,7 +67,9 @@ How to test driver without cups:
 ################################
 1. Create ricoh printer binary file from some text file:
 enter the string in terminal(here you need installed <enscript> programm):
- enscript --media=A4 -o - TEST_FILE.txt |python xxx.py PageSize=A4  > XXX.OUT
+
+enscript --media=A4 -o - TEST_FILE.txt |python ricoh-sp1xx-drv.py PageSize=A4  > XXX.OUT
+
 here <enscript> creates postscript file of A4 size from TEST_FILE.txt(or some 
 your text file, and sends it to stdout), driver gets data from stdin and sends 
 resulting file to your XXX.OUT
