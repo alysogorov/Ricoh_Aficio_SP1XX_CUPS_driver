@@ -9,19 +9,29 @@ import uuid
 import time
 import subprocess
 #####################################
+
 #set default values
 __pagesize = "A4"  #  default page size
 __resolution = "600"
 __copies = "1"
 __mediasource = "AUTO"  #__mediasource="TRAY1"
 
-#this modes are implemented in cups, user sets them in printing settings,
-#the driver receives proper pages(all,odd,even) in proper order(direct,
+# this modes are implemented in cups, user sets them in printing settings,
+# the driver receives proper pages(all,odd,even) in proper order(direct,
 # reversed) we ignore them n code
 __outputOrder="DIRECT" # direct or reversed order
 __printPages="ALL" # all, even, odd pages to be printed
 
-##############################
+
+# ricoh printer acceps "the size of page raster in dots",
+# which, as people say, could be used to control lifetime of 
+# cartrige, but printers sustains faked values, unreally low,
+# and doesn't check them. So to possibly improve catrige lifetime
+# we can give him low values (real values for text, A4,600dpi are 
+# about 200000-300000 dots)
+__faked_dotcount="777" 
+
+#############################
 __base = sys.path[0]+"/" #script dir
 ##############################
 #######
@@ -33,7 +43,6 @@ __out_fn ="" #default output to sdtout
 
 __log_fn =""#won't dump any
 #__log_fn =__base+"LOG.LOG"#will dump logs to this file
-
 
 #####################################
 __out = sys.stdout #select data output to stdout(cups filter send data there)
@@ -249,7 +258,7 @@ def addPage(fpage):
     appendFile(__out,lfile)
 #    if not __copy_stream is None: append_file(__copy_stream,lfile)
 #send page footer
-    pjlLine("DOTCOUNT=777") # here we use fake dotcount
+    pjlLine("DOTCOUNT="+__faked_dotcount) # here we use fake dotcount
     pjlLine("PAGESTATUS=END")# end of page command
     return True
 ############def end send_page
@@ -365,7 +374,7 @@ def doJob() :
      ["gs"
      ,"-dQUIET"
      ,"-dBATCH"
-     ,"-dSAFER" 
+     ,"-dSAFER"  
      ,"-sDEVICE=pbmraw"
      ,"-sOutputFile="+__temp_dir+"%03d-page.pbm"
      ,"-r"+__resolution
