@@ -237,7 +237,8 @@ def addPage(fpage):
     term("pbmtojbg -p 72 -o 3 -m 0 -q "+fpage+" "+lraster)
     lw, lh = parsePbmSize(fpage) #get raster dimensions in pixels
     log("PAGE ORIGINAL DIMS="+str(lw)+"x"+str(lh))
-    lw,lh = cut_dimensions(__pagesize,"600",lw, lh)
+    lw,lh = cut_dimensions(__pagesize,__resolution,lw, lh)
+    
     #lwidth, lheight = "4961","7016"
     log("PAGE CROPPED DIMS="+str(lw)+"x"+str(lh))
   
