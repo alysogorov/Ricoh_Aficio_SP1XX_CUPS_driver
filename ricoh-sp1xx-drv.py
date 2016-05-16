@@ -41,11 +41,11 @@ __base = sys.path[0]+"/" #script dir
 #for debugging:
 #if everyting is OK, set empty strings to this values
 
-#__out_fn ="" #default output to sdtout
-__out_fn =__base+"driver.out" #redirects output to this file, not stdout
+__out_fn ="" #default output to sdtout
+#__out_fn =__base+"driver.out" #redirects output to this file, not stdout
 
-#__log_fn =""#won't dump any
-__log_fn =__base+"LOG.LOG"#will dump logs to this file
+__log_fn =""#won't dump any
+#__log_fn =__base+"LOG.LOG"#will dump logs to this file
 #####################################
 
 __out = None #ouput stream
@@ -382,7 +382,7 @@ def doJobSimple():
         
           #### file generated, add footer ####
     else: #Duplex mode
-        lpagesCount=0
+#        lpagesCount=0
         while inx<llast_page: #print odd pages
             lpage = makePageFN(inx,"-page.ps") #make page file name from index
             log(">>> doing page: "+lpage)
@@ -393,7 +393,7 @@ def doJobSimple():
             #convert ps page to curr_page.pbm
             term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
             if not addPage(lpbm_out): break
-            lpagesCount+=1
+#            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
             inx+=2 # next page
 
@@ -406,11 +406,11 @@ def doJobSimple():
             term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
             if not addPage(lpbm_out, inx==2): #at inx==2 printer must ask user to flip paper
                 break
-            lpagesCount+=1
+#            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
             inx+=2 # next page
     
-    log("TOTAL PAGES = "+str(lpagesCount))    
+#    log("TOTAL PAGES = "+str(lpagesCount))    
     if lfooter: sendFileFoot()
 
 
