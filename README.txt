@@ -16,12 +16,12 @@ Driver can -
 1.Print at resolution : tested at 600dpi(seem could work at 1200 dpi also, but 
 not tested)
 
-2.print A4,A5,A6 papers(tested)
+2.print A4,A5,A6, Letter papers(tested)
 
 3.Features as: printing in direct, reverse page order, priniting odd/even
 pages provides CUPS itself, so it works automatically 
 
--for debugging:
+-also driver can in debug mode:
 4.write rich dump to arbitrary file
 
 5.copy outcoming stream to some file for analysis(suitable if filter is 
@@ -58,9 +58,9 @@ for the printer. if print job failed - remove it from the list of active jobs.
 
 ################################
 REMARK:
-i m using stub only for easy developement. If you like to avoid stub, just 
+i m using stub only for easy developement. If you need to avoid stub, just 
 rename the driver to the stub name and put into /usr/lib/cups/filter, and give 
-the same rights as for stub
+the same rights as for the stub
 
 ################################
 How to test driver without cups:
@@ -74,7 +74,7 @@ here <enscript> creates postscript file of A4 size from TEST_FILE.txt(or some
 your text file, and sends it to stdout), driver gets data from stdin and sends 
 resulting file to your XXX.OUT
 
-2. The output file can be explored in some binary editor(kinda GHex)
+2. The output file can be explored with some binary editor(kinda GHex)
 or be sent to printer:
  sudo cat XXX.OUT >/dev/usb/lp0  
 

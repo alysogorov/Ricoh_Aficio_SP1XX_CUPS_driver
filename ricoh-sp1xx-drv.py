@@ -11,17 +11,20 @@ import subprocess
 #####################################
 
 #set default values
-__pagesize = "A4"  #  default page size
-__resolution = "600"
+__pageSize = "A4"  #  default page size
+__resolution = "600" #ricoh SP1XX supports 600*600 and 1200*600 resolution
 __copies = "1"
-__mediasource = "AUTO"  #__mediasource="TRAY1"
+__mediaSource = "AUTO"  #__mediasource="TRAY1"
+__mediaType = "PLAINRECYCLE"
 
 # this modes are implemented in cups, user sets them in printing settings,
-# the driver receives proper pages(all,odd,even) in proper order(direct,
-# reversed) we ignore them n code
+# this driver receives proper pages(all,odd,even) in proper order(direct,
+# reversed), so we can ignore them our code
 __outputOrder="DIRECT" # direct or reversed order
 __printPages="ALL" # all, even, odd pages to be printed
 
+#hardware duplex print, we take it into account
+__duplex =False
 
 # ricoh printer acceps "the size of page raster in dots",
 # which, as people say, could be used to control lifetime of 
@@ -35,19 +38,22 @@ __faked_dotcount="777"
 __base = sys.path[0]+"/" #script dir
 ##############################
 #######
-#for debugging, if everyting is OK, set empty strings to this values
-#here filenames are relative to dir of this driver, redirection of driver output
-#hardcoded here to catch output if driver has been called via cups.
-__out_fn ="" #default output to sdtout
-#__out_fn =__base+"driver.out" #will redirect output not to stdio, but to this file
+#for debugging:
+#if everyting is OK, set empty strings to this values
 
-__log_fn =""#won't dump any
-#__log_fn =__base+"LOG.LOG"#will dump logs to this file
+#__out_fn ="" #default output to sdtout
+__out_fn =__base+"driver.out" #redirects output to this file, not stdout
 
+#__log_fn =""#won't dump any
+__log_fn =__base+"LOG.LOG"#will dump logs to this file
 #####################################
-__out = sys.stdout #select data output to stdout(cups filter send data there)
-if __out_fn!="":
-    __out = open(__out_fn,"w")
+
+__out = None #ouput stream
+
+if __out_fn=="":
+    __out = sys.stdout #to stdout(normal behaviour)
+else:    
+    __out = open(__out_fn,"w") #to real file
 
 ##################################
 #logging
@@ -95,21 +101,27 @@ def _find_(farr, fs):
 def find_option(fs):
     return _find_(sys.argv,fs)
 
-#parse options to override defaults
-if    (find_option("PageSize=A5")):     __pagesize="A5"
-elif  (find_option("PageSize=A6")):     __pagesize="A6"
-elif  (find_option("PageSize=Letter")): __pagesize="Letter"
+#parse options to override default - A4
+if    find_option("PageSize=A5"):     __pageSize="A5"
+elif  find_option("PageSize=A6"):     __pageSize="A6"
+elif  find_option("PageSize=Letter"): __pageSize="Letter"
 
-log("PageSize="+__pagesize) #dump paper size for debugging
+log("PageSize="+__pageSize) #dump paper size for debugging
 
 #check slot(paper?)...but my printer has only one slot - AUTO(from Windows driver caption)
 #because some printers could have different slots, this option is essential for them
-if find_option("InputSlot=Auto"): __mediasource = "AUTO"
+if find_option("InputSlot=Auto"): __mediaSource = "AUTO"
+
+#get mediaType
+if find_option("MediaType=PLAINRECYCLE"): __mediaType = "PLAINRECYCLE"
 
 if find_option("OutputOrder=Reverse"): _outputOrder="REVERSE"
   
 if   find_option('page-set=even'): _printPages="EVEN"
 elif find_option('page-set=odd'):  _printPages="ODD"
+
+#printer duplex mode
+if find_option("Duplex=DuplexNoTumble"): __duplex = True
 
 ########
 #options obtained for multipage printing(few pages on one paper sheet)
@@ -159,20 +171,20 @@ def pjlLine(fs):
 # http://www.papersizes.org/a-sizes-in-pixels.htm
 # seems both links give different pixel dimensions for same paper 
 # at least this works good for all mentioned paper sizes for 600 dpi
-# 1200 dpi still not tested
+# at 1200 dpi ricoh sp1xx has 1200*600 resolution
 def metric_dimensions(fpaper, fres, fw,fh):
    if fpaper=="A4":
       if fres=="600": return 4961,7016
-      if fres=="1200": return  9921, 14031
+      if fres=="1200": return  9921, 7016   #9921, 14031
    elif fpaper=="Letter":
       if fres=="600": return 5100,6600
-      if fres=="1200":return 10200,13200
+      if fres=="1200":return  10200,6600    #10200,13200
    elif fpaper == "A5":
       if fres=="600": return 3502, 4958 #Pixels
-      if fres=="1200": return 7004,9916 #Pixels 
+      if fres=="1200": return 7004,4958 #Pixels   #7004,9916 #Pixels 
    elif fpaper == "A6":
       if fres=="600": return 2480, 3508 #Pixels
-      if fres=="1200": return  4961, 6992 #Pixels 
+      if fres=="1200": return 4961, 3508 #4961, 6992 #Pixels 
    else: return 4961,7016 #A4 * 600dpi
 
 #cut dimensions to fit metric values
@@ -227,7 +239,7 @@ def parsePbmSize(ffile):
     return int(ls[0]),int(ls[1])
 
 # send PJL page to output stream
-def addPage(fpage):
+def addPage(fpage, faskflip=False):
     log("sending page:"+fpage)
     if not os.path.exists(fpage): return False
 
@@ -237,7 +249,7 @@ def addPage(fpage):
     term("pbmtojbg -p 72 -o 3 -m 0 -q "+fpage+" "+lraster)
     lw, lh = parsePbmSize(fpage) #get raster dimensions in pixels
     log("PAGE ORIGINAL DIMS="+str(lw)+"x"+str(lh))
-    lw,lh = cut_dimensions(__pagesize,__resolution,lw, lh)
+    lw,lh = cut_dimensions(__pageSize,__resolution,lw, lh)
     
     #lwidth, lheight = "4961","7016"
     log("PAGE CROPPED DIMS="+str(lw)+"x"+str(lh))
@@ -246,17 +258,26 @@ def addPage(fpage):
     log("RASTER SIZE ="+str(lbytes));
     lfile = open(lraster, "rb");
 
+
+    if faskflip: # used for hardware duplex mode - printer stops
+        pjlLine("MANUALDUPLEX=FLIPSIDE")
     pjlLine("PAGESTATUS=START")
     pjlLine("COPIES="+__copies) #number of copies
-    pjlLine("MEDIASOURCE="+__mediasource) #paper tray to feed
-    pjlLine("MEDIATYPE=PLAINRECYCLE") #kind of paper
-    pjlLine("PAPER="+__pagesize) #size of paper:A4,A5...
+    pjlLine("MEDIASOURCE="+__mediaSource) #paper tray to feed
+    pjlLine("MEDIATYPE="+__mediaType) #kind of paper
+    pjlLine("PAPER="+__pageSize) #size of paper:A4,A5...
     pjlLine("PAPERWIDTH="+str(lw))   # x dimension in pixels
     pjlLine("PAPERLENGTH="+str(lh))  # y dimention in pixels
     pjlLine("RESOLUTION="+__resolution) #resolution (dpi)
+    global __duplex    
+    if __duplex:
+        pjlLine("PURPOSE=MANUALDUPLEXEMPTYPAPER")
+        
     pjlLine("IMAGELEN="+str(lbytes)) #bytes in image
 #append page raster
+
     appendFile(__out,lfile)
+    log("raster data appended")    
 #    if not __copy_stream is None: append_file(__copy_stream,lfile)
 #send page footer
     pjlLine("DOTCOUNT="+__faked_dotcount) # here we use fake dotcount
@@ -320,7 +341,7 @@ def findLastPage(fmask):
         lpage = makePageFN(i,fmask) #make page file name from index
         if not os.path.exists(lpage): break #end of pages
         llast = i
-        i=i+1
+        i+=1
     return llast;
 
 ################################
@@ -332,30 +353,64 @@ def findLastPage(fmask):
 #also device ps2Write adds ending extra page to a file(seems bug???).
 #to avoid extrapage i'm scipping it, pls report if something is wrong
 def doJobSimple():
+    log("METHOD: DOING JOB SIMPLE")    
     linput = getInput()
     #  __gs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER -sPAPERSIZE="+__pagesize #standard Ghost Script options from GS tutorial
     lgs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER" #standard Ghost Script options from GS tutorial
-      #convert incoming postscript to page files
+
+    #convert incoming postscript to page files
     term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +" "+ linput)
     #  sys.exit()
     lfooter = False
-    inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
+    inx = 1; # iterate pages and send them to file, first page has index 1, not 0
     lpbm_out = __temp_dir+"page.pbm"
     llast_page = findLastPage("-page.ps")    
-    while inx<llast_page:
-        lpage = makePageFN(inx,"-page.ps") #make page file name from index
-        log("doing page: "+lpage)
-    #   if not os.path.exists(lpage): break #end of pages
-        if inx==1: 
-            send_file_head() # send header before the first page, if page exists
-            lfooter = True
-        #convert ps page to curr_page.pbm
-        term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
-        if not addPage(lpbm_out): break
-        term("rm "+lpbm_out) #remove page
-        inx=inx+1 # next page
+    log("LAST PAGE = "+str(llast_page))
+    if not __duplex: #one side mode     
+        while inx<llast_page:
+            lpage = makePageFN(inx,"-page.ps") #make page file name from index
+            log(">>> doing page: "+lpage)
+        #   if not os.path.exists(lpage): break #end of pages
+            if inx==1: 
+                send_file_head() # send header before the first page, if page exists
+                lfooter = True
+            #convert ps page to curr_page.pbm
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            if not addPage(lpbm_out): break
+            term("rm "+lpbm_out) #remove page
+            inx+=1 # next page
+        
+          #### file generated, add footer ####
+    else: #Duplex mode
+        lpagesCount=0
+        while inx<llast_page: #print odd pages
+            lpage = makePageFN(inx,"-page.ps") #make page file name from index
+            log(">>> doing page: "+lpage)
+        #   if not os.path.exists(lpage): break #end of pages
+            if inx==1: 
+                send_file_head() # send header before the first page, if page exists
+                lfooter = True
+            #convert ps page to curr_page.pbm
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            if not addPage(lpbm_out): break
+            lpagesCount+=1
+            term("rm "+lpbm_out) #remove page
+            inx+=2 # next page
+
+        #print even pages
+        inx=2
+        while inx<llast_page: #print odd pages
+            lpage = makePageFN(inx,"-page.ps") #make page file name from index
+            log(">>> doing page: "+lpage)
+            #convert ps page to curr_page.pbm
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            if not addPage(lpbm_out, inx==2): #at inx==2 printer must ask user to flip paper
+                break
+            lpagesCount+=1
+            term("rm "+lpbm_out) #remove page
+            inx+=2 # next page
     
-      #### file generated, add footer ####
+    log("TOTAL PAGES = "+str(lpagesCount))    
     if lfooter: sendFileFoot()
 
 
@@ -366,10 +421,11 @@ def doJobSimple():
 #but we need to copy incoming PS from stdin to a file
 def doJob() :
 #copy stdin to a file
-  lsavfn =  __temp_dir+"TEMP.PS"
+  lsavfn =  __temp_dir+"TEMP.PS" #filename for saved file
   lin = open(lsavfn,"w")
   appendFile(lin,sys.stdin,1024)
   lin.close()    
+
 #run conversion PS->PBM as subprocess with pipes
   p =subprocess.Popen(
      ["gs"
@@ -400,14 +456,14 @@ def doJob() :
       lpage =  makePageFN(inx,"-page.pbm")#make page file name from index
       if not addPage(lpage): break
       term("rm "+lpage) #delete processed page
-      inx=inx+1 # next page
+      inx+=1 # next page
 
   #### file generated, add footer ####
   if lfooter: sendFileFoot()
 
 ################################
 #doJobTrivial()
-doJobSimple()
+doJobSimple() #just now omly JobSimple supports duplex mode
 #doJob()
 log("printing: OK")
 driverCleanup()
