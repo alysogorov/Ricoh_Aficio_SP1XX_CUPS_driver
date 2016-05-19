@@ -23,7 +23,7 @@ __mediaType = "PLAINRECYCLE"
 __outputOrder="DIRECT" # direct or reversed order
 __printPages="ALL" # all, even, odd pages to be printed
 
-#hardware duplex print, we take it into account
+#duplex print, we take it into account
 __duplex =False
 
 # ricoh printer acceps "the size of page raster in dots",
@@ -33,19 +33,27 @@ __duplex =False
 # we can give him low values (real values for text, A4,600dpi are 
 # about 200000-300000 dots)
 __faked_dotcount="777" 
-
 #############################
 __base = sys.path[0]+"/" #script dir
+
 ##############################
+# where to store an unic dir for temporary files 
+#of driver work, dir will be deleted, if driver finished
+#correctly
+
+#__temp_dir_host = __base   #store relatively to driver folder
+__temp_dir_host = "/tmp/ricoh_sp1xxx/"
+#__temp_dir_host = "/tmp/"
+
 #######
 #for debugging:
-#if everyting is OK, set empty strings to this values
+#for regular work set empty strings to this values
 
 __out_fn ="" #default output to sdtout
-#__out_fn =__base+"driver.out" #redirects output to this file, not stdout
+#__out_fn =__base+"DOUT.OUT" #redirects output to this file, not stdout
 
 __log_fn =""#won't dump any
-#__log_fn =__base+"LOG.LOG"#will dump logs to this file
+#__log_fn =__base+"DLOG.LOG"#will dump logs to this file
 #####################################
 
 __out = None #ouput stream
@@ -94,17 +102,21 @@ def _find_(farr, fs):
     i=1;
     while i<len(farr):
       if farr[i]==fs: return True
-      i=i+1
+      i+=1
     return False
 
 #find option
-def find_option(fs):
+def find_option(fs): 
     return _find_(sys.argv,fs)
 
+#paper size parameter
 #parse options to override default - A4
 if    find_option("PageSize=A5"):     __pageSize="A5"
 elif  find_option("PageSize=A6"):     __pageSize="A6"
 elif  find_option("PageSize=Letter"): __pageSize="Letter"
+elif  find_option("PageSize=Legal"): __pageSize="Legal"
+elif  find_option("PageSize=B5"): __pageSize="B5"
+elif  find_option("PageSize=B6"): __pageSize="B6"
 
 log("PageSize="+__pageSize) #dump paper size for debugging
 
@@ -113,10 +125,16 @@ log("PageSize="+__pageSize) #dump paper size for debugging
 if find_option("InputSlot=Auto"): __mediaSource = "AUTO"
 
 #get mediaType
+#need to check if printer understands such mediatype names!!!
 if find_option("MediaType=PLAINRECYCLE"): __mediaType = "PLAINRECYCLE"
+elif find_option("MediaType=PAPER"): __mediaType = "PAPER"
+elif find_option("MediaType=THIN"): __mediaType = "THIN"
+elif find_option("MediaType=THICK1"): __mediaType = "THICK1"
+elif find_option("MediaType=RECYCLE"): __mediaType = "RECYCLE"
 
+#this options we parse because they could take place.
+#we do nothing on it
 if find_option("OutputOrder=Reverse"): _outputOrder="REVERSE"
-  
 if   find_option('page-set=even'): _printPages="EVEN"
 elif find_option('page-set=odd'):  _printPages="ODD"
 
@@ -143,8 +161,10 @@ def term(fs):
 
 ########### create temporary dir ###############
 #__uid = __base+"TEMP" #for debigging use fixed subfolder
-__uid = __base+ str(uuid.uuid4())
-term("mkdir "+__uid) #create temp dir
+
+__uid = __temp_dir_host+ str(uuid.uuid4())
+
+term("mkdir -p "+__uid) #create temp dir
 __temp_dir = __uid +"/"
 
 #######################################
@@ -399,7 +419,7 @@ def doJobSimple():
 
         #print even pages
         inx=2
-        while inx<llast_page: #print odd pages
+        while inx<llast_page: #print even pages
             lpage = makePageFN(inx,"-page.ps") #make page file name from index
             log(">>> doing page: "+lpage)
             #convert ps page to curr_page.pbm
@@ -463,7 +483,7 @@ def doJob() :
 
 ################################
 #doJobTrivial()
-doJobSimple() #just now omly JobSimple supports duplex mode
+doJobSimple() #just now only JobSimple supports duplex mode
 #doJob()
 log("printing: OK")
 driverCleanup()
