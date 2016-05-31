@@ -76,13 +76,13 @@
 *OrderDependency: 20 AnySetup *Duplex
 *DefaultDuplex: None
 *Duplex None/None:	"<</Duplex false>>setpagedevice"
-*%Duplex DuplexTumble/Flip on Short Edge:	"<</Duplex true/Tumble true>>setpagedevice"
+*Duplex DuplexTumble/Flip on Short Edge:	"<</Duplex true/Tumble true>>setpagedevice"
 *Duplex DuplexNoTumble/Flip on Long Edge:	"<</Duplex true/Tumble false>>setpagedevice"
 *CloseUI: *Duplex
 
 *OpenUI *MediaType/Media Type: PickOne
 *OrderDependency: 10 AnySetup *MediaType
-*DefaultMediaType: PLAINRECYCLED
+*DefaultMediaType: PLAINRECYCLE
 *MediaType PLAINRECYCLE/Plain & Recycled : "<</MediaType(Auto)/cupsMediaType 0>>setpagedevice"
 *MediaType PAPER/Plain: "<</MediaType(Plain)/cupsMediaType 1>>setpagedevice"
 *MediaType THIN/Thin: "<</MediaType(Thin)/cupsMediaType 2>>setpagedevice"
@@ -99,6 +99,7 @@
 *OrderDependency: 10 AnySetup *Resolution
 *DefaultResolution: 600dpi
 *Resolution 600dpi/600 DPI: "<</HWResolution[600 600]/cupsBitsPerColor 1/cupsRowCount 0/cupsRowFeed 0/cupsRowStep 0/cupsColorSpace 3>>setpagedevice"
+*Resolution 1200dpi/1200 DPI: "<</HWResolution[1200 600]/cupsBitsPerColor 1/cupsRowCount 0/cupsRowFeed 0/cupsRowStep 0/cupsColorSpace 3>>setpagedevice"
 *CloseUI: *Resolution
 
 *DefaultFont: Courier
