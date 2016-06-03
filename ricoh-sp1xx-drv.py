@@ -120,6 +120,10 @@ elif  find_option("PageSize=B6"): __pageSize="B6"
 
 log("PageSize="+__pageSize) #dump paper size for debugging
 
+#resolution parameter
+if    find_option("Resolution=600dpi"):     __resolution="600"
+elif  find_option("Resolution=1200dpi"):     __resolution="1200"
+
 #check slot(paper?)...but my printer has only one slot - AUTO(from Windows driver caption)
 #because some printers could have different slots, this option is essential for them
 if find_option("InputSlot=Auto"): __mediaSource = "AUTO"
@@ -140,6 +144,7 @@ elif find_option('page-set=odd'):  _printPages="ODD"
 
 #printer duplex mode
 if find_option("Duplex=DuplexNoTumble"): __duplex = True
+elif find_option("Duplex=DuplexTumble"): __duplex = True
 
 ########
 #options obtained for multipage printing(few pages on one paper sheet)
@@ -335,7 +340,7 @@ def doJobTrivial():
 
     #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
     #we can convert only PBM->JBIG(needed by printer)
-    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +"x600 "+ linput)
     inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
     lheader = False 
     while True:
@@ -379,7 +384,7 @@ def doJobSimple():
     lgs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER" #standard Ghost Script options from GS tutorial
 
     #convert incoming postscript to page files
-    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +"x600 "+ linput)
     #  sys.exit()
     lfooter = False
     inx = 1; # iterate pages and send them to file, first page has index 1, not 0
@@ -395,7 +400,7 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
             term("rm "+lpbm_out) #remove page
             inx+=1 # next page
@@ -411,7 +416,7 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
 #            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
@@ -423,7 +428,7 @@ def doJobSimple():
             lpage = makePageFN(inx,"-page.ps") #make page file name from index
             log(">>> doing page: "+lpage)
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out, inx==2): #at inx==2 printer must ask user to flip paper
                 break
 #            lpagesCount+=1
