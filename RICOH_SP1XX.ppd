@@ -76,8 +76,8 @@
 *OrderDependency: 20 AnySetup *Duplex
 *DefaultDuplex: None
 *Duplex None/None:	"<</Duplex false>>setpagedevice"
-*Duplex DuplexTumble/Flip on Short Edge:	"<</Duplex true/Tumble true>>setpagedevice"
 *Duplex DuplexNoTumble/Flip on Long Edge:	"<</Duplex true/Tumble false>>setpagedevice"
+*Duplex DuplexTumble/Flip on Short Edge:	"<</Duplex true/Tumble true>>setpagedevice"
 *CloseUI: *Duplex
 
 *OpenUI *MediaType/Media Type: PickOne
