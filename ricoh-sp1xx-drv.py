@@ -114,11 +114,15 @@ def find_option(fs):
 if    find_option("PageSize=A5"):     __pageSize="A5"
 elif  find_option("PageSize=A6"):     __pageSize="A6"
 elif  find_option("PageSize=Letter"): __pageSize="Letter"
-elif  find_option("PageSize=Legal"): __pageSize="Legal"
-elif  find_option("PageSize=B5"): __pageSize="B5"
-elif  find_option("PageSize=B6"): __pageSize="B6"
+elif  find_option("PageSize=Legal"):  __pageSize="Legal"
+elif  find_option("PageSize=B5"):     __pageSize="B5"
+elif  find_option("PageSize=B6"):     __pageSize="B6"
 
 log("PageSize="+__pageSize) #dump paper size for debugging
+
+#resolution parameter
+if    find_option("Resolution=600dpi"):  __resolution="600"
+elif  find_option("Resolution=1200dpi"): __resolution="1200"
 
 #check slot(paper?)...but my printer has only one slot - AUTO(from Windows driver caption)
 #because some printers could have different slots, this option is essential for them
@@ -126,20 +130,21 @@ if find_option("InputSlot=Auto"): __mediaSource = "AUTO"
 
 #get mediaType
 #need to check if printer understands such mediatype names!!!
-if find_option("MediaType=PLAINRECYCLE"): __mediaType = "PLAINRECYCLE"
-elif find_option("MediaType=PAPER"): __mediaType = "PAPER"
-elif find_option("MediaType=THIN"): __mediaType = "THIN"
-elif find_option("MediaType=THICK1"): __mediaType = "THICK1"
-elif find_option("MediaType=RECYCLE"): __mediaType = "RECYCLE"
+if   find_option("MediaType=PLAINRECYCLE"): __mediaType = "PLAINRECYCLE"
+elif find_option("MediaType=PAPER"):        __mediaType = "PAPER"
+elif find_option("MediaType=THIN"):         __mediaType = "THIN"
+elif find_option("MediaType=THICK1"):       __mediaType = "THICK1"
+elif find_option("MediaType=RECYCLE"):      __mediaType = "RECYCLE"
 
 #this options we parse because they could take place.
 #we do nothing on it
 if find_option("OutputOrder=Reverse"): _outputOrder="REVERSE"
-if   find_option('page-set=even'): _printPages="EVEN"
-elif find_option('page-set=odd'):  _printPages="ODD"
+if   find_option('page-set=even'):     _printPages="EVEN"
+elif find_option('page-set=odd'):      _printPages="ODD"
 
 #printer duplex mode
 if find_option("Duplex=DuplexNoTumble"): __duplex = True
+elif find_option("Duplex=DuplexTumble"): __duplex = True
 
 ########
 #options obtained for multipage printing(few pages on one paper sheet)
@@ -248,15 +253,22 @@ def appendFile(fdst, fsrc, fbuffer_size=1024*16):
 #    Whitespace. 
 #    The height in pixels of the image, again in ASCII decimal. 
 #    Newline or other single whitespace character.
-def parsePbmSize(ffile):
-    lf = open(ffile,"rb")
-    lf.readline();   #log(">>>>"+lr) #magic P4
-    lf.readline();   #log(">>>>"+lrr) #comment
-    lrrr = lf.readline();  #log(">>>>"+lrrr) #width height
-    ls = lrrr.split(" ")
-    lf.close()
-    #return 4961,7016    
-    return int(ls[0]),int(ls[1])
+def parsePbmSize(ffile):     
+     proc = os.popen("pnmfile " + ffile + " | sed s/.*,//")
+     outstr = proc.readline()
+     proc.close()
+     size = outstr.split()
+     return int(size[0]),int(size[2])
+     
+     
+# Comment section is arbitrary
+#    lf = open(ffile,"rb")
+#    lf.readline();   #log(">>>>"+lr) #magic P4
+#    lf.readline();   #log(">>>>"+lrr) #comment
+#    lrrr = lf.readline();  #log(">>>>"+lrrr) #width height
+#    ls = lrrr.split(" ")
+#    lf.close()
+#    return int(ls[0]),int(ls[1])
 
 # send PJL page to output stream
 def addPage(fpage, faskflip=False):
@@ -335,7 +347,7 @@ def doJobTrivial():
 
     #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
     #we can convert only PBM->JBIG(needed by printer)
-    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +"x600 "+ linput)
     inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
     lheader = False 
     while True:
@@ -367,7 +379,7 @@ def findLastPage(fmask):
 ################################
 #PRINT ENTIRE FILE
 #more advanced than Trivial, splits incoming PostScript file in pages, and then 
-#page by page creates PBM, converts to JBIG page and adds to output stream
+#page by page creates PBM, converts to sed removeJBIG page and adds to output stream
 #pros: only one PBM page stored, so needs way less memory for printing
 #cons: uses additional stage for conversion, so works slower them Trivial
 #also device ps2Write adds ending extra page to a file(seems bug???).
@@ -379,11 +391,12 @@ def doJobSimple():
     lgs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER" #standard Ghost Script options from GS tutorial
 
     #convert incoming postscript to page files
-    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +"x600 "+ linput)
     #  sys.exit()
     lfooter = False
     inx = 1; # iterate pages and send them to file, first page has index 1, not 0
     lpbm_out = __temp_dir+"page.pbm"
+    flip_out = __temp_dir+"flip.pbm"
     llast_page = findLastPage("-page.ps")    
     log("LAST PAGE = "+str(llast_page))
     if not __duplex: #one side mode     
@@ -395,7 +408,7 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
             term("rm "+lpbm_out) #remove page
             inx+=1 # next page
@@ -411,11 +424,11 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
 #            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
-            inx+=2 # next page
+            inx+=2 # next odd page
 
         #print even pages
         inx=2
@@ -423,12 +436,14 @@ def doJobSimple():
             lpage = makePageFN(inx,"-page.ps") #make page file name from index
             log(">>> doing page: "+lpage)
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ flip_out + " -r"+__resolution+"x600 "+lpage)
+            # flip even pages so they come out with correct orientation
+            term("pnmflip -r180 " + flip_out + " > " + lpbm_out)
             if not addPage(lpbm_out, inx==2): #at inx==2 printer must ask user to flip paper
                 break
 #            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
-            inx+=2 # next page
+            inx+=2 # next even page
     
 #    log("TOTAL PAGES = "+str(lpagesCount))    
     if lfooter: sendFileFoot()
