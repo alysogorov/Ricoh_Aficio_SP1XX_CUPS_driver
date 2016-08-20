@@ -45,16 +45,18 @@ __base = sys.path[0]+"/" #script dir
 __temp_dir_host = "/tmp/ricoh_sp1xxx/"
 #__temp_dir_host = "/tmp/"
 
-#######
+#####################################################
+#####################################################
 #for debugging:
 #for regular work set empty strings to this values
-
+#####################################################
 __out_fn ="" #default output to sdtout
 #__out_fn =__base+"DOUT.OUT" #redirects output to this file, not stdout
 
 __log_fn =""#won't dump any
 #__log_fn =__base+"DLOG.LOG"#will dump logs to this file
-#####################################
+#####################################################
+#####################################################
 
 __out = None #ouput stream
 
@@ -98,7 +100,7 @@ __date = time.strftime('%Y/%m/%d %H:%M:%S') #"this is date"
 log("Current Date is "+__date)
 
 #find string in a string array
-def _find_(farr, fs):
+def find_substr(farr, fs):
     i=1;
     while i<len(farr):
       if farr[i]==fs: return True
@@ -107,7 +109,7 @@ def _find_(farr, fs):
 
 #find option
 def find_option(fs): 
-    return _find_(sys.argv,fs)
+    return find_substr(sys.argv,fs)
 
 #paper size parameter
 #parse options to override default - A4
@@ -146,7 +148,16 @@ if find_option("Duplex=DuplexNoTumble"): __duplex = True
 #still not process this modes
 # 'number-up=16'
 # 'number-up-layout=lrtb'
+
 ##########################
+#cleanup and exit procedure
+def exitDriver(fcode):
+#    if not __copy_stream is None: __copy_stream.close()
+    term("rm -rf "+ __uid) #delete temp folder
+    if __out!=sys.stdout:__out.close() #clode output file if ouput redirected
+    closeLog()
+    exit(fcode) #exit script with specified return code
+
 
 #terminal command
 def term(fs):
@@ -157,7 +168,8 @@ def term(fs):
     log("RETURN CODE="+str(lret));
     if lret!=0: 
       log("COMMAND ERROR:EXIT(1)")
-      exit(1) #driver failed
+      #exit(1) #driver failed
+      exitDriver(1)
 
 ########### create temporary dir ###############
 #__uid = __base+"TEMP" #for debigging use fixed subfolder
@@ -309,13 +321,6 @@ def addPage(fpage, faskflip=False):
 def getInput():
     return " -" 
 
-#cleanup
-def driverCleanup():
-#    if not __copy_stream is None: __copy_stream.close()
-    term("rm -rf "+ __uid) #delete temp folder
-    if __out!=sys.stdout:__out.close()
-    closeLog()
-
 ###############################################
 ###############################################
 ###############################################
@@ -335,6 +340,7 @@ def doJobTrivial():
 
     #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
     #we can convert only PBM->JBIG(needed by printer)
+    #gs -dQUIET -dBATCH -dNOPAUSE -dSAFER -sDEVICE=pbmraw -sOutputFile=test.pbm -r600 <inputfile>
     term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ linput)
     inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
     lheader = False 
@@ -486,6 +492,5 @@ def doJob() :
 doJobSimple() #just now only JobSimple supports duplex mode
 #doJob()
 log("printing: OK")
-driverCleanup()
- 
-exit(0)
+
+exitDriver(0)
