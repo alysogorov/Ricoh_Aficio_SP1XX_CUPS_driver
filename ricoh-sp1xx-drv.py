@@ -10,7 +10,9 @@ import time
 import subprocess
 #####################################
 
-#set default values
+#########################
+# DEFAULT VALUES
+#########################
 __pageSize = "A4"  #  default page size
 __resolution = "600" #ricoh SP1XX supports 600*600 and 1200*600 resolution
 __copies = "1"
@@ -19,7 +21,7 @@ __mediaType = "PLAINRECYCLE"
 
 # this modes are implemented in cups, user sets them in printing settings,
 # this driver receives proper pages(all,odd,even) in proper order(direct,
-# reversed), so we can ignore them our code
+# reversed), so we can ignore it in our code
 __outputOrder="DIRECT" # direct or reversed order
 __printPages="ALL" # all, even, odd pages to be printed
 
@@ -28,12 +30,13 @@ __duplex =False
 
 # ricoh printer acceps "the size of page raster in dots",
 # which, as people say, could be used to control lifetime of 
-# cartrige, but printers sustains faked values, unreally low,
+# cartrige, but printers can eat faked values, unreally low,
 # and doesn't check them. So to possibly improve catrige lifetime
-# we can give him low values (real values for text, A4,600dpi are 
+# we can give to printer some low values (real values for text, A4,600dpi are 
 # about 200000-300000 dots)
 __faked_dotcount="777" 
 #############################
+# directory of the script
 __base = sys.path[0]+"/" #script dir
 
 ##############################
@@ -55,38 +58,42 @@ __out_fn ="" #default output to sdtout
 
 __log_fn =""#won't dump any
 #__log_fn =__base+"DLOG.LOG"#will dump logs to this file
+
 #####################################################
 #####################################################
 
-__out = None #ouput stream
+__out = None #the ouput stream variable 
 
 if __out_fn=="":
-    __out = sys.stdout #to stdout(normal behaviour)
+    __out = sys.stdout #generate to stdout(normal behaviour)
 else:    
-    __out = open(__out_fn,"w") #to real file
+    __out = open(__out_fn,"w") #generate to a real file
 
 ##################################
-#logging
+#logging - define a logstrean 
 __log_stream = None
 
 if __log_fn != "":
     __log_stream = open(__log_fn, "w") #open log file
     sys.stderr = __log_stream
 
+#logout a string
 def log(fs):
     if not __log_stream is None:
         __log_stream.write(fs+'\n')
 
+#close a logstream
 def closeLog():
     if not __log_stream is None:
         __log_stream.close()
 
 ###################################
-#get script parameters
+#get ith script parameter
 def param(i):
     if i<len(sys.argv): return sys.argv[i]
     else: return "undefined"
 
+#print the argument list
 log('Argument List:'+ str(sys.argv))
 
 #__log_stream.close()
@@ -94,7 +101,15 @@ log('Argument List:'+ str(sys.argv))
 
 __user = param(2)# user name
 __title=param(3)# file name
-__copies=param(4)#number of copies(just a number)
+
+# i commented "number of copies" because cups can insert some additional params 
+# after file title to the script invocation  string, and place of number of 
+# copies cannot  be predefined, we need here some good workaround. 
+# default number of copies is 1
+
+# __copies=param(4)#number of copies(just a number)
+
+
 #__options=param(5)#
 __date = time.strftime('%Y/%m/%d %H:%M:%S') #"this is date"
 log("Current Date is "+__date)
@@ -107,12 +122,13 @@ def find_substr(farr, fs):
       i+=1
     return False
 
-#find option
+#find an option-fs
 def find_option(fs): 
     return find_substr(sys.argv,fs)
 
-#paper size parameter
-#parse options to override default - A4
+
+#decode invocation options 
+#paper size parameter, default - A4
 if    find_option("PageSize=A5"):     __pageSize="A5"
 elif  find_option("PageSize=A6"):     __pageSize="A6"
 elif  find_option("PageSize=Letter"): __pageSize="Letter"
@@ -121,6 +137,9 @@ elif  find_option("PageSize=B5"): __pageSize="B5"
 elif  find_option("PageSize=B6"): __pageSize="B6"
 
 log("PageSize="+__pageSize) #dump paper size for debugging
+
+if    find_option("Resolution=600dpi"):  __resolution="600"
+elif  find_option("Resolution=1200dpi"): __resolution="1200"
 
 #check slot(paper?)...but my printer has only one slot - AUTO(from Windows driver caption)
 #because some printers could have different slots, this option is essential for them
@@ -142,6 +161,7 @@ elif find_option('page-set=odd'):  _printPages="ODD"
 
 #printer duplex mode
 if find_option("Duplex=DuplexNoTumble"): __duplex = True
+elif find_option("Duplex=DuplexTumble"): __duplex = True
 
 ########
 #options obtained for multipage printing(few pages on one paper sheet)
@@ -180,7 +200,8 @@ term("mkdir -p "+__uid) #create temp dir
 __temp_dir = __uid +"/"
 
 #######################################
-def out(fs): #send data to output file
+#send data to output file
+def out(fs): 
     log(fs)
     __out.write(fs)
     
@@ -270,7 +291,7 @@ def parsePbmSize(ffile):
     #return 4961,7016    
     return int(ls[0]),int(ls[1])
 
-# send PJL page to output stream
+# send PJL page to the output stream
 def addPage(fpage, faskflip=False):
     log("sending page:"+fpage)
     if not os.path.exists(fpage): return False
@@ -341,7 +362,7 @@ def doJobTrivial():
     #convert incoming postscript to PBM...because seems we cannot convert PS -> JBIG directly
     #we can convert only PBM->JBIG(needed by printer)
     #gs -dQUIET -dBATCH -dNOPAUSE -dSAFER -sDEVICE=pbmraw -sOutputFile=test.pbm -r600 <inputfile>
-    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=pbmraw -sOutputFile="+__temp_dir+"%03d-page.pbm"	+" -r"+__resolution +"x600 "+ linput)
     inx = 1; # iterate pages images and send them to file, first page has index 1, not 0
     lheader = False 
     while True:
@@ -385,7 +406,7 @@ def doJobSimple():
     lgs_ops = "-dQUIET -dBATCH -dNOPAUSE -dSAFER" #standard Ghost Script options from GS tutorial
 
     #convert incoming postscript to page files
-    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +" "+ linput)
+    term("gs "+ lgs_ops+" -sDEVICE=ps2write -sOutputFile="+__temp_dir+"%03d-page.ps"	+" -r"+__resolution +"x600 "+ linput)
     #  sys.exit()
     lfooter = False
     inx = 1; # iterate pages and send them to file, first page has index 1, not 0
@@ -401,7 +422,7 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
             term("rm "+lpbm_out) #remove page
             inx+=1 # next page
@@ -417,19 +438,19 @@ def doJobSimple():
                 send_file_head() # send header before the first page, if page exists
                 lfooter = True
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out): break
 #            lpagesCount+=1
             term("rm "+lpbm_out) #remove page
             inx+=2 # next page
-
+ 
         #print even pages
         inx=2
         while inx<llast_page: #print even pages
             lpage = makePageFN(inx,"-page.ps") #make page file name from index
             log(">>> doing page: "+lpage)
             #convert ps page to curr_page.pbm
-            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+" "+lpage)
+            term("gs "+lgs_ops+" -sDEVICE=pbmraw"+" -sOutputFile="+ lpbm_out + " -r"+__resolution+"x600 "+lpage)
             if not addPage(lpbm_out, inx==2): #at inx==2 printer must ask user to flip paper
                 break
 #            lpagesCount+=1
@@ -460,7 +481,7 @@ def doJob() :
      ,"-dSAFER"  
      ,"-sDEVICE=pbmraw"
      ,"-sOutputFile="+__temp_dir+"%03d-page.pbm"
-     ,"-r"+__resolution
+     ,"-r"+__resolution+"x600"
       #,linput]
      ,lsavfn]
      , shell=False

@@ -1,17 +1,21 @@
-Driver developed for ricoh aficio sp100 series
-and can work possibly for SP2XX.
-Tested on ricoh aficio sp111(Ubuntu 14.04).
+------------------------------
+﻿Linux Driver for RICOH aficio sp100 series
+and can work possibly for SP2XX(not 
+tested)
+
+------------------------------
+Tested on RICOH aficio sp111(Ubuntu 14.04).
 It was inspired by madlynx driver - https://github.com/madlynx/ricoh-sp100
 
-Needed external software - 
+------------------------------
+External software needed : 
   1.GhostScript (apt-get install ghostscript)
   2.pbmtojbg (apt-get install jbigkit)
   3.Python 
-
-to check requirements for installed software- run file:
+to check requirements for installed software- run the file:
   check-requirements
 
-############################
+------------------------------
 Driver is able:
   1.Print at resolution : tested at 600dpi(seem could work at 1200 dpi also, but 
   not tested)
@@ -29,14 +33,23 @@ Driver is able:
   This strategy differs from strategy of windows driver!!! Take care! 
   Pages flipping is different!
 
-  4.Features as: printing in direct, reverse page order, priniting odd/even
+  4.Features as: printing in direct, reverse page order, printing odd/even
   pages provides CUPS itself, so it works automatically 
+
+------------------------
+	
+	driver ignores number of copies.
+
+
+
+------------------------
+	DEBUG MODE:
 
 In debug mode driver can:
   1.write rich dump to arbitrary file
 
-  2.write outcoming stream not to stdout but to some file for analysis(suitable if filter is 
-  used from CUPS).
+  2.write outcoming stream not to stdout, but to arbitrary file for analysis(suitable if filter is 
+used from CUPS).
 
 ############################
 Driver usage:
@@ -59,37 +72,93 @@ Driver usage:
   reference to <ricoh-sp1xx> inside. 
 
   3. Turn your printer on.
-  4. Try to print small text file to test or CUPS test page.
+  4. for testing try to print small text file or CUPS test page.
 
   5. If printer is in idle mode, it must "click" at beginning of printing.
-  It shows that host have sent a file to priter, and filter not failed. If there 
-  is no click, it could be "filter failed" error(mostly because of access rights).
+  It shows that host has sent a file to the printer, and filter has not failed. 
+  If there is no click, it could be "filter failed" error(probably because of access rights).
 
   6. If there is no printing, check in CUPS http interface which report cups gives
   for the printer. if print job failed - remove it from the list of active jobs.
 
 REMARK:
-  I use stub script for easy developement only. If you need to avoid stub, just 
-  rename the driver to the stub name and put into /usr/lib/cups/filter, and give 
-  the same rights as for the stub
+  I use stub script for easy developement only. If you want to avoid stub, just 
+  rename the driver to the stub name and put the driver itself into /usr/lib/cups/filter, 
+  and give him the same rights as for the stub. 
+
 
 ################################
-How to test driver without cups:
+HOW TO TEST THE DRIVER WITHOUT CUPS(or manually try to print something).
 ################################
-  1. Create ricoh printer binary file from some text file:
-  enter the string in terminal(here you need installed <enscript> programm):
+
+  1. To create RICOH printer binary file(a file which printer could print) from some
+  text file: enter the string in terminal(here you need installed <enscript> programm):
 
   enscript --media=A4 -o - TEST_FILE.txt |python ricoh-sp1xx-drv.py PageSize=A4  > XXX.OUT
 
   here <enscript> creates postscript file of A4 size from TEST_FILE.txt(or some 
   your text file, and sends it to stdout), driver gets data from stdin and sends 
-  resulting file to your XXX.OUT
+  resulting file to your XXX.OUT file(filenames are arbitrary)
+
+sentence : 
+	python ricoh-sp1xx-drv.py PageSize=A4
+ 
+is an invocation of the driver. 
+common driver invocation string is - python ricoh-sp1xx-drv.py [paramList]
+
+paramList is a sequence of parameters, given below(not all of given parameters are interpreted by driver)
+
+page size:
+		"PageSize=A4" (default, if not PageSize is given, A4 will be chosen)
+		"PageSize=A5"
+		"PageSize=A6"
+		"PageSize=Letter"
+		"PageSize=Legal"
+		"PageSize=B5"
+		"PageSize=B6"
+
+resolution:
+		"Resolution=600dpi" (default value)
+		"Resolution=1200dpi"
+
+input slot(driver ignores it):
+		"InputSlot=Auto"(default, driver still won't interpret any other kind of input slot)
+
+media_type(ignored):
+		"MediaType=PLAINRECYCLE" (default)
+		"MediaType=PAPER"
+		"MediaType=THIN"
+		"MediaType=THICK1"
+		"MediaType=RECYCLE"
+
+output order(ignored):		
+		"OutputOrder=Reverse" 
+
+page set:		
+		"page-set=even"
+		"page-set=odd"
+
+duplex:
+		"Duplex=DuplexNoTumble"
+		"Duplex=DuplexTumble"
+
+		an order of options is not fixed, driver just searches, from the beginning of the option string, 
+		a substring which he can understand as known option. options must look exactly as I write, 
+		without blanks(f.e. is is wrong "PageSize =A5")
+
+		example of a correct driver call 
+			python ricoh-sp1xx-drv.py PageSize=A5  MediaType=THIN Resolution=1200dpi
+
+	
+	The driver creates a file, which can be sent to a printer.
+	The output file has PJL format(native for this printer).
+	see link - http://h10032.www1.hp.com/ctg/Manual/bpl13208
 
   2. The output file can be explored with some binary editor(kinda GHex)
   or be sent to printer:
    sudo cat XXX.OUT >/dev/usb/lp0  
 
-
+----------------------
 If there is something wrong, pls open an issue.
 Happy printing
 alys.
