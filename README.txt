@@ -34,19 +34,24 @@ Driver is able:
   Pages flipping is different!
 
   4.Features as: printing in direct, reverse page order, printing odd/even
-  pages provides CUPS itself, so it works automatically 
+  pages provides CUPS itself, so it must work automatically 
 
 ------------------------
-	
-	driver ignores number of copies.
-
-
+	 DISCLAIMER  !!!	
+	ability to print few copies removed in current version, because of primitive command 
+	line encoder of the driver invocation. CUPS calls the driver giving him few parameters, 
+	but order of parameters, names, presence, format.. are not well known by author. 
+	if some error in interpretation of params occures, driver could do things, we do not expect.
+	There was such a trouble with "number_of_copies" parameter , which looks in some invocations 
+	as forth number in command line, but sometimes forth param was something else, and driver 
+	worked wrong. So, to not spend a time for it, i just ignore number of copies. so , to print 
+	few copies, you've to print each of them manually, one by one.
 
 ------------------------
 	DEBUG MODE:
 
 In debug mode driver can:
-  1.write rich dump to arbitrary file
+  1.write rich dump of its activity to arbitrary file
 
   2.write outcoming stream not to stdout, but to arbitrary file for analysis(suitable if filter is 
 used from CUPS).
