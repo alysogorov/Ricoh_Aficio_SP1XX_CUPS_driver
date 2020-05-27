@@ -11,7 +11,7 @@ It was inspired by madlynx driver - https://github.com/madlynx/ricoh-sp100
 External software needed : 
   1.GhostScript (apt-get install ghostscript)
   2.pbmtojbg (apt-get install jbigkit)
-  3.Python 
+  3.Python 2.7!!! 
 to check requirements for installed software- run the file:
   check-requirements
 
